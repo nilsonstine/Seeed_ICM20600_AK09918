@@ -1,7 +1,7 @@
 #include "ICM20600.h"
 #include "Wire.h"
+
 ICM20600::ICM20600(bool AD0) {
-    Wire1.begin();
     if (AD0) {
         _addr = ICM20600_I2C_ADDR2;
     } else {
@@ -14,14 +14,21 @@ uint8_t ICM20600::getDeviceID() {
     Wire1.write(ICM20600_WHO_AM_I);
     Wire1.endTransmission();
     Wire1.requestFrom(_addr, (uint8_t)1);
-    return Wire1.read();
+    if (Wire1.available()) {
+        return Wire1.read();
+    } else {
+        return 0;
+    }
 }
 
 void ICM20600::initialize() {
     // configuration
-    I2Cdev::writeByte(_addr, ICM20600_CONFIG, 0x00);
-    // disable fifo
-    I2Cdev::writeByte(_addr, ICM20600_FIFO_EN, 0x00);
+    Wire1.beginTransmission(_addr);
+    Wire1.write(ICM20600_CONFIG);
+    Wire1.write(0x00);
+    Wire1.write(ICM20600_FIFO_EN);
+    Wire1.write(0x00);
+    Wire1.endTransmission();
 
     // set default power mode
     ICM20600::setPowerMode(ICM_6AXIS_LOW_POWER);
@@ -102,9 +109,20 @@ void ICM20600::setPowerMode(icm20600_power_type_t mode) {
     default:
         break;
     }
-    I2Cdev::writeByte(_addr, ICM20600_PWR_MGMT_1, data_pwr1);
-    I2Cdev::writeByte(_addr, ICM20600_PWR_MGMT_2, data_pwr2);
-    I2Cdev::writeByte(_addr, ICM20600_GYRO_LP_MODE_CFG, data_gyro_lp);
+    Wire1.beginTransmission(_addr);
+    Wire1.write(ICM20600_PWR_MGMT_1);
+    Wire1.write(data_pwr1);
+    Wire1.endTransmission();
+
+    Wire1.beginTransmission(_addr);
+    Wire1.write(ICM20600_PWR_MGMT_2);
+    Wire1.write(data_pwr2);
+    Wire1.endTransmission();
+
+    Wire1.beginTransmission(_addr);
+    Wire1.write(ICM20600_GYRO_LP_MODE_CFG);
+    Wire1.write(data_gyro_lp);
+    Wire1.endTransmission();
 }
 
 // SAMPLE_RATE = 1KHz / (1 + div)
@@ -407,73 +425,19 @@ void ICM20600::getAcceleration(int16_t *x, int16_t *y, int16_t *z) {
 }
 
 int16_t ICM20600::getAccelerationX(void) {
-    int32_t raw_data = ICM20600::getRawAccelerationX();
+    int32_t raw_data = ICM20600::getRaw(ICM20600_ACCEL_XOUT_H);
     raw_data = (raw_data * _acc_scale) >> 16;
     return (int16_t)raw_data;
 }
 int16_t ICM20600::getAccelerationY(void) {
-    int32_t raw_data = ICM20600::getRawAccelerationY();
+    int32_t raw_data = ICM20600::getRaw(ICM20600_ACCEL_YOUT_H);
     raw_data = (raw_data * _acc_scale) >> 16;
     return (int16_t)raw_data;
 }
 int16_t ICM20600::getAccelerationZ(void) {
-    int32_t raw_data = ICM20600::getRawAccelerationZ();
+    int32_t raw_data = ICM20600::getRaw(ICM20600_ACCEL_ZOUT_H);
     raw_data = (raw_data * _acc_scale) >> 16;
     return (int16_t)raw_data;
-}
-
-int16_t ICM20600::getRawAccelerationX(void) {
-    uint8_t data[2];
-
-    // Start reading from the ICM20600_ACCEL_XOUT_H register
-    Wire1.beginTransmission(_addr);
-    Wire1.write(ICM20600_ACCEL_XOUT_H);
-    Wire1.endTransmission();
-    Wire1.requestFrom(_addr, (uint8_t)2);
-
-    if (Wire1.available() == 2) {
-        data[0] = Wire1.read(); // High byte
-        data[1] = Wire1.read(); // Low byte
-    }
-
-    // Combine the two bytes into a single 16-bit value
-    return ((int16_t)data[0] << 8) | data[1];
-}
-
-int16_t ICM20600::getRawAccelerationY(void) {
-    uint8_t data[2];
-
-    // Start reading from the ICM20600_ACCEL_YOUT_H register
-    Wire1.beginTransmission(_addr);
-    Wire1.write(ICM20600_ACCEL_YOUT_H);
-    Wire1.endTransmission();
-    Wire1.requestFrom(_addr, (uint8_t)2);
-
-    if (Wire1.available() == 2) {
-        data[0] = Wire1.read(); // High byte
-        data[1] = Wire1.read(); // Low byte
-    }
-
-    // Combine the two bytes into a single 16-bit value
-    return ((int16_t)data[0] << 8) | data[1];
-}
-
-int16_t ICM20600::getRawAccelerationZ(void) {
-    uint8_t data[2];
-
-    // Start reading from the ICM20600_ACCEL_ZOUT_H register
-    Wire1.beginTransmission(_addr);
-    Wire1.write(ICM20600_ACCEL_ZOUT_H);
-    Wire1.endTransmission();
-    Wire1.requestFrom(_addr, (uint8_t)2);
-
-    if (Wire1.available() == 2) {
-        data[0] = Wire1.read(); // High byte
-        data[1] = Wire1.read(); // Low byte
-    }
-
-    // Combine the two bytes into a single 16-bit value
-    return ((int16_t)data[0] << 8) | data[1];
 }
 
 void ICM20600::getGyroscope(int16_t *x, int16_t *y, int16_t *z) {
@@ -483,29 +447,29 @@ void ICM20600::getGyroscope(int16_t *x, int16_t *y, int16_t *z) {
 }
 
 int16_t ICM20600::getGyroscopeX(void) {
-    int32_t raw_data = ICM20600::getRawGyroscopeX();
+    int32_t raw_data = ICM20600::getRaw(ICM20600_GYRO_XOUT_H);
     raw_data = (raw_data * _gyro_scale) >> 16;
     return (int16_t)raw_data;
 }
 
 int16_t ICM20600::getGyroscopeY(void) {
-    int32_t raw_data = ICM20600::getRawGyroscopeY();
+    int32_t raw_data = ICM20600::getRaw(ICM20600_GYRO_YOUT_H);
     raw_data = (raw_data * _gyro_scale) >> 16;
     return (int16_t)raw_data;
 }
 
 int16_t ICM20600::getGyroscopeZ(void) {
-    int32_t raw_data = ICM20600::getRawGyroscopeZ();
+    int32_t raw_data = ICM20600::getRaw(ICM20600_GYRO_ZOUT_H);
     raw_data = (raw_data * _gyro_scale) >> 16;
     return (int16_t)raw_data;
 }
 
-int16_t ICM20600::getRawGyroscopeX(void) {
+int16_t ICM20600::getRaw(int regAddr) {
     uint8_t data[2];
 
-    // Start reading from the ICM20600_GYRO_XOUT_H register
+    // Start reading from the ICM20600_ACCEL_XOUT_H register
     Wire1.beginTransmission(_addr);
-    Wire1.write(ICM20600_GYRO_XOUT_H);
+    Wire1.write(regAddr);
     Wire1.endTransmission();
     Wire1.requestFrom(_addr, (uint8_t)2);
 
@@ -513,45 +477,7 @@ int16_t ICM20600::getRawGyroscopeX(void) {
         data[0] = Wire1.read(); // High byte
         data[1] = Wire1.read(); // Low byte
     }
-
-    // Combine the two bytes into a single 16-bit value
-    return ((int16_t)data[0] << 8) | data[1];
-}
-
-int16_t ICM20600::getRawGyroscopeY(void) {
-    uint8_t data[2];
-
-    // Start reading from the ICM20600_GYRO_YOUT_H register
-    Wire1.beginTransmission(_addr);
-    Wire1.write(ICM20600_GYRO_YOUT_H);
-    Wire1.endTransmission();
-    Wire1.requestFrom(_addr, (uint8_t)2);
-
-    if (Wire1.available() == 2) {
-        data[0] = Wire1.read(); // High byte
-        data[1] = Wire1.read(); // Low byte
-    }
-
-    // Combine the two bytes into a single 16-bit value
-    return ((int16_t)data[0] << 8) | data[1];
-}
-
-int16_t ICM20600::getRawGyroscopeZ(void) {
-    uint8_t data[2];
-
-    // Start reading from the ICM20600_GYRO_ZOUT_H register
-    Wire1.beginTransmission(_addr);
-    Wire1.write(ICM20600_GYRO_ZOUT_H);
-    Wire1.endTransmission();
-    Wire1.requestFrom(_addr, (uint8_t)2);
-
-    if (Wire1.available() == 2) {
-        data[0] = Wire1.read(); // High byte
-        data[1] = Wire1.read(); // Low byte
-    }
-
-    // Combine the two bytes into a single 16-bit value
-    return ((int16_t)data[0] << 8) | data[1];
+    return ((int16_t)data[0] << 8) + _buffer[1];
 }
 
 int16_t ICM20600::getTemperature(void) {
