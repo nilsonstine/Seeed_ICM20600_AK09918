@@ -1,7 +1,6 @@
 #include <AK09918.h>
 #include <Arduino.h>
 #include <ICM20600.h>
-#include <SimpleKalmanFilter.h>
 #include <Wire.h>
 
 // MAGNOMETER PARAMS (AK09918)
