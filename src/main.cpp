@@ -3,7 +3,7 @@
 #include <ICM20600.h>
 #include <Wire.h>
 
-int32_t x, y, z;
+int16_t x, y, z;
 
 int32_t offset_x, offset_y, offset_z;
 double roll, pitch;
@@ -24,9 +24,10 @@ void setup() {
 
     // err = ak09918.initialize();
     // Serial.println("AK09918 ID: " + String(ak09918.getDeviceID()));
-    // Serial.println("ICM20600 ID: " + String(icm20600.getDeviceID()));
+    icm20600.initialize();
+    Serial.println("ICM20600 ID: " + String(icm20600.getDeviceID()));
     // Serial.println("err: " + String(err));
-    // icm20600.initialize();
+    //
     // ak09918.switchMode(AK09918_POWER_DOWN);
     // ak09918.switchMode(AK09918_CONTINUOUS_100HZ);
     //  err = ak09918.isDataReady();
@@ -45,6 +46,6 @@ void setup() {
 
 void loop() {
     // get acceleration
-    Serial.println("LOOPING");
-    delay(500);
+    icm20600.getAcceleration(&x, &y, &z);
+    Serial.println("x: " + String(x) + " y: " + String(y) + " z: " + String(z));
 }
