@@ -1,3 +1,6 @@
+# Note on fork
+A drop in replacement for the original library that does not rely on i2cDev. As i couldn't get i2cdev to work with my teensy 4.0. This library should work with any MC that supports the Wire library. 
+
 # Seeed ICM20600 + AK09918 Library  [![Build Status](https://travis-ci.com/Seeed-Studio/Seeed_ICM20600_AK09918.svg?branch=master)](https://travis-ci.com/Seeed-Studio/Seeed_ICM20600_AK09918)
 
 This is the Arduino Library for Seeed's ICM20600 + AK09918 based products. For now, it's Grove - IMU 9DOF(ICM20600+AK09918).
